@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>불백타임 루틴</title>
-<meta name="description" content="불백타임에서 공유한 운동 루틴이에요. 눌러서 앱으로 가져오세요.">
-<meta property="og:title" content="불백타임 루틴 공유">
-<meta property="og:description" content="눌러서 불백타임 앱으로 루틴을 가져오세요.">
+<title>불백타임 루틴 · BulbagTime routine</title>
+<!-- 미리보기(카톡 등)는 받는 사람 언어를 모르므로 두 언어를 같이 쓴다 -->
+<meta name="description" content="불백타임에서 공유한 운동 루틴이에요. A workout routine shared from BulbagTime.">
+<meta property="og:title" content="불백타임 루틴 공유 · BulbagTime routine">
+<meta property="og:description" content="눌러서 앱으로 루틴을 가져오세요 · Tap to import it into the app">
 <meta property="og:image" content="https://mrcshlee-dot.github.io/icon.png">
 <meta name="theme-color" content="#0D0D0F">
 <link rel="icon" href="../icon.png">
@@ -53,7 +54,7 @@
 </head>
 <body>
 <main>
-  <div class="brand"><img src="../icon.png" alt="">불백타임</div>
+  <div class="brand"><img src="../icon.png" alt=""><span data-t="brand">불백타임</span></div>
 
   <section id="routine" hidden>
     <h1 id="title"></h1>
@@ -61,35 +62,70 @@
     <div class="card"><ol id="items"></ol></div>
   </section>
 
-  <div class="error" id="error" hidden>
-    루틴 정보를 읽지 못했어요. 링크가 잘렸을 수 있어요.<br>
-    보낸 사람에게 링크를 다시 받아 주세요.
-  </div>
+  <div class="error" id="error" data-t="error" hidden></div>
 
-  <a class="btn primary" id="open" href="#">불백타임에서 열기</a>
-  <a class="btn secondary" id="install" href="#">플레이 스토어에서 설치</a>
-  <p class="note">
-    앱이 있으면 “불백타임에서 열기”를 누르면 루틴 가져오기 창이 떠요.
-    카카오톡에서 열었다면 이 버튼을 한 번 눌러 주세요.
-  </p>
+  <a class="btn primary" id="open" href="#" data-t="open"></a>
+  <a class="btn secondary" id="install" href="#" data-t="install"></a>
+  <p class="note" data-t="note"></p>
 </main>
 <script>
 (function () {
   var PACKAGE = 'com.bulbagtime.app';
   var STORE = 'https://play.google.com/store/apps/details?id=' + PACKAGE;
-  var MODES = { INTERVAL: '인터벌', EMOM: 'EMOM', AMRAP: 'AMRAP', TABATA: '타바타' };
-  var CATEGORIES = { DYNAMIC: '전신', LOWER: '하체', UPPER: '상체', CORE: '코어' };
-  // BT2의 번호 순서. 앱의 RoutineCode.BUILT_IN과 같아야 하고 뒤에 추가만 한다
+  // 브라우저 언어가 한국어면 한국어, 아니면 영어 (앱과 같은 기준)
+  var KO = /^ko\b/i.test(navigator.language || '');
+  var T = KO ? {
+    brand: '불백타임',
+    error: '루틴 정보를 읽지 못했어요. 링크가 잘렸을 수 있어요.<br>보낸 사람에게 링크를 다시 받아 주세요.',
+    open: '불백타임에서 열기',
+    install: '플레이 스토어에서 설치',
+    note: '앱이 있으면 “불백타임에서 열기”를 누르면 루틴 가져오기 창이 떠요. 카카오톡에서 열었다면 이 버튼을 한 번 눌러 주세요.',
+    title: function (name) { return '“' + name + '” 루틴'; },
+    docTitle: function (name) { return '“' + name + '” · 불백타임 루틴'; },
+    shared: '공유받은 루틴',
+    moves: function (n) { return '동작 ' + n + '개'; },
+    rounds: function (n) { return n + '라운드'; },
+    minutes: function (n) { return n + '분'; },
+    work: function (w, r) { return w + '초' + (r > 0 ? ' / 휴식 ' + r + '초' : ''); },
+    modes: { INTERVAL: '인터벌', EMOM: 'EMOM', AMRAP: 'AMRAP', TABATA: '타바타' },
+    categories: { DYNAMIC: '전신', LOWER: '하체', UPPER: '상체', CORE: '코어' }
+  } : {
+    brand: 'BulbagTime',
+    error: 'Couldn\'t read this routine. The link may be cut off.<br>Ask the sender for the link again.',
+    open: 'Open in BulbagTime',
+    install: 'Get it on Google Play',
+    note: 'If you have the app, tap “Open in BulbagTime” to import the routine. In in-app browsers such as KakaoTalk, tap the button once.',
+    title: function (name) { return '“' + name + '”'; },
+    docTitle: function (name) { return '“' + name + '” · BulbagTime routine'; },
+    shared: 'Shared routine',
+    moves: function (n) { return n + (n === 1 ? ' move' : ' moves'); },
+    rounds: function (n) { return n + (n === 1 ? ' round' : ' rounds'); },
+    minutes: function (n) { return n + ' min'; },
+    work: function (w, r) { return w + 's' + (r > 0 ? ' / rest ' + r + 's' : ''); },
+    modes: { INTERVAL: 'Interval', EMOM: 'EMOM', AMRAP: 'AMRAP', TABATA: 'Tabata' },
+    categories: { DYNAMIC: 'Full', LOWER: 'Lower', UPPER: 'Upper', CORE: 'Core' }
+  };
+  document.documentElement.lang = KO ? 'ko' : 'en';
+  document.title = KO ? '불백타임 루틴' : 'BulbagTime routine';
+  Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (el) {
+    el.innerHTML = T[el.getAttribute('data-t')];
+  });
+  // BT2의 번호 순서. 앱의 RoutineCode.BUILT_IN과 같아야 하고 뒤에 추가만 한다. [한국어, 부위, 영어]
   var MODE_ORDER = ['INTERVAL', 'EMOM', 'AMRAP', 'TABATA'];
   var CATEGORY_ORDER = ['DYNAMIC', 'LOWER', 'UPPER', 'CORE'];
   var BUILT_IN = [
-    ['스핀', 'DYNAMIC'], ['스내치', 'DYNAMIC'], ['암 스로우', 'DYNAMIC'], ['스윙', 'DYNAMIC'],
-    ['사이드 스윙', 'DYNAMIC'], ['슬램', 'DYNAMIC'], ['스윙 스핀', 'DYNAMIC'], ['램 스윙', 'DYNAMIC'],
-    ['백 스쿼트', 'LOWER'], ['프론트/제르셔 스쿼트', 'LOWER'], ['런지', 'LOWER'], ['불가리안 스플릿 스쿼트', 'LOWER'],
-    ['프론트 레이즈 스쿼트', 'LOWER'], ['클린 & 스쿼트', 'LOWER'], ['스윙 스쿼트', 'LOWER'],
-    ['오버헤드 프레스', 'UPPER'], ['벤트오버 로우', 'UPPER'], ['푸시업', 'UPPER'], ['컬 & 익스텐션', 'UPPER'],
-    ['벤트 프레스', 'UPPER'],
-    ['러시안 트위스트', 'CORE'], ['크런치 & 싯업', 'CORE'], ['굿모닝', 'CORE']
+    ['스핀', 'DYNAMIC', 'Spin'], ['스내치', 'DYNAMIC', 'Snatch'], ['암 스로우', 'DYNAMIC', 'Arm Throw'],
+    ['스윙', 'DYNAMIC', 'Swing'], ['사이드 스윙', 'DYNAMIC', 'Side Swing'], ['슬램', 'DYNAMIC', 'Slam'],
+    ['스윙 스핀', 'DYNAMIC', 'Swing Spin'], ['램 스윙', 'DYNAMIC', 'Ram Swing'],
+    ['백 스쿼트', 'LOWER', 'Back Squat'], ['프론트/제르셔 스쿼트', 'LOWER', 'Front/Zercher Squat'],
+    ['런지', 'LOWER', 'Lunge'], ['불가리안 스플릿 스쿼트', 'LOWER', 'Bulgarian Split Squat'],
+    ['프론트 레이즈 스쿼트', 'LOWER', 'Front Raise Squat'], ['클린 & 스쿼트', 'LOWER', 'Clean & Squat'],
+    ['스윙 스쿼트', 'LOWER', 'Swing Squat'],
+    ['오버헤드 프레스', 'UPPER', 'Overhead Press'], ['벤트오버 로우', 'UPPER', 'Bent-over Row'],
+    ['푸시업', 'UPPER', 'Push-up'], ['컬 & 익스텐션', 'UPPER', 'Biceps Curl & Triceps Extension'],
+    ['벤트 프레스', 'UPPER', 'Bent Press'],
+    ['러시안 트위스트', 'CORE', 'Russian Twist'], ['크런치 & 싯업', 'CORE', 'Crunch & Sit-up'],
+    ['굿모닝', 'CORE', 'Good Morning']
   ];
 
   var hash = location.hash.slice(1);
@@ -130,7 +166,7 @@
       var items = json[7].map(function (item) {
         var number = Array.isArray(item) ? item[0] : item;
         var exercise = number >= 0
-          ? { n: BUILT_IN[number][0], c: BUILT_IN[number][1] }
+          ? { n: BUILT_IN[number][KO ? 0 : 2], c: BUILT_IN[number][1] }
           : { n: customs[-number - 1][0], c: CATEGORY_ORDER[customs[-number - 1][1]] };
         exercises.push(exercise);
         return [exercises.length - 1, Array.isArray(item) ? item[1] : json[2], Array.isArray(item) ? item[2] : json[3]];
@@ -140,12 +176,12 @@
   }
 
   function show(routine) {
-    document.getElementById('title').textContent = '“' + routine.n + '” 루틴';
+    document.getElementById('title').textContent = T.title(routine.n);
     var count = routine.i.length;
     var meta = (routine.m === 'INTERVAL' || routine.m === 'TABATA')
-      ? '동작 ' + count + '개 · ' + routine.R + '라운드'
-      : '동작 ' + count + '개 · ' + routine.t + '분';
-    document.getElementById('meta').textContent = (MODES[routine.m] || routine.m) + ' · ' + meta;
+      ? T.moves(count) + ' · ' + T.rounds(routine.R)
+      : T.moves(count) + ' · ' + T.minutes(routine.t);
+    document.getElementById('meta').textContent = (T.modes[routine.m] || routine.m) + ' · ' + meta;
     var list = document.getElementById('items');
     routine.i.forEach(function (item, index) {
       var exercise = routine.x[item[0]];
@@ -158,15 +194,13 @@
       name.textContent = exercise.n;
       var sub = document.createElement('span');
       sub.className = 'sub';
-      var category = CATEGORIES[exercise.c] || '';
-      sub.textContent = routine.m === 'INTERVAL'
-        ? category + ' · ' + item[1] + '초' + (item[2] > 0 ? ' / 휴식 ' + item[2] + '초' : '')
-        : category;
+      var category = T.categories[exercise.c] || '';
+      sub.textContent = routine.m === 'INTERVAL' ? category + ' · ' + T.work(item[1], item[2]) : category;
       li.append(num, name, sub);
       list.append(li);
     });
     document.getElementById('routine').hidden = false;
-    document.title = '“' + routine.n + '” · 불백타임 루틴';
+    document.title = T.docTitle(routine.n);
   }
 
   if (!match) {
@@ -175,7 +209,7 @@
   }
   if (typeof DecompressionStream === 'undefined') {
     // 오래된 브라우저는 미리보기만 못 하고 앱 열기는 된다
-    document.getElementById('title').textContent = '공유받은 루틴';
+    document.getElementById('title').textContent = T.shared;
     document.getElementById('routine').hidden = false;
     document.querySelector('#routine .card').hidden = true;
   } else {
