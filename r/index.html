@@ -79,6 +79,18 @@
   var STORE = 'https://play.google.com/store/apps/details?id=' + PACKAGE;
   var MODES = { INTERVAL: '인터벌', EMOM: 'EMOM', AMRAP: 'AMRAP', TABATA: '타바타' };
   var CATEGORIES = { DYNAMIC: '전신', LOWER: '하체', UPPER: '상체', CORE: '코어' };
+  // BT2의 번호 순서. 앱의 RoutineCode.BUILT_IN과 같아야 하고 뒤에 추가만 한다
+  var MODE_ORDER = ['INTERVAL', 'EMOM', 'AMRAP', 'TABATA'];
+  var CATEGORY_ORDER = ['DYNAMIC', 'LOWER', 'UPPER', 'CORE'];
+  var BUILT_IN = [
+    ['스핀', 'DYNAMIC'], ['스내치', 'DYNAMIC'], ['암 스로우', 'DYNAMIC'], ['스윙', 'DYNAMIC'],
+    ['사이드 스윙', 'DYNAMIC'], ['슬램', 'DYNAMIC'], ['스윙 스핀', 'DYNAMIC'], ['램 스윙', 'DYNAMIC'],
+    ['백 스쿼트', 'LOWER'], ['프론트/제르셔 스쿼트', 'LOWER'], ['런지', 'LOWER'], ['불가리안 스플릿 스쿼트', 'LOWER'],
+    ['프론트 레이즈 스쿼트', 'LOWER'], ['클린 & 스쿼트', 'LOWER'], ['스윙 스쿼트', 'LOWER'],
+    ['오버헤드 프레스', 'UPPER'], ['벤트오버 로우', 'UPPER'], ['푸시업', 'UPPER'], ['컬 & 익스텐션', 'UPPER'],
+    ['벤트 프레스', 'UPPER'],
+    ['러시안 트위스트', 'CORE'], ['크런치 & 싯업', 'CORE'], ['굿모닝', 'CORE']
+  ];
 
   var hash = location.hash.slice(1);
   var match = /^BT\d+\.[A-Za-z0-9_-]+$/.test(hash) ? hash : null;
@@ -104,11 +116,27 @@
     return bytes;
   }
 
-  // 앱(RoutineCode.kt)과 같은 형식: "BT1." + 압축(deflate, 헤더 없음)한 JSON을 URL용 Base64로
+  // 앱(RoutineCode.kt)과 같은 형식: "BT2." + 압축(deflate, 헤더 없음)한 JSON을 URL용 Base64로.
+  // 형식 설명은 RoutineCode.kt 참고. 화면은 BT1 모양({n, m, R, t, x, i})으로 맞춰서 그린다
   function decode(code) {
+    var version = code.slice(2, code.indexOf('.'));
     var bytes = decodeBase64Url(code.slice(code.indexOf('.') + 1));
     var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-    return new Response(stream).text().then(JSON.parse);
+    return new Response(stream).text().then(JSON.parse).then(function (json) {
+      if (version === '1') return json;
+      if (version !== '2') throw new Error('unknown version');
+      var customs = json[8] || [];
+      var exercises = [];
+      var items = json[7].map(function (item) {
+        var number = Array.isArray(item) ? item[0] : item;
+        var exercise = number >= 0
+          ? { n: BUILT_IN[number][0], c: BUILT_IN[number][1] }
+          : { n: customs[-number - 1][0], c: CATEGORY_ORDER[customs[-number - 1][1]] };
+        exercises.push(exercise);
+        return [exercises.length - 1, Array.isArray(item) ? item[1] : json[2], Array.isArray(item) ? item[2] : json[3]];
+      });
+      return { n: json[0], m: MODE_ORDER[json[1]], R: json[4], t: json[6], x: exercises, i: items };
+    });
   }
 
   function show(routine) {
