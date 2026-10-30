@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>불백타임 루틴</title>
+<meta name="description" content="불백타임에서 공유한 운동 루틴이에요. 눌러서 앱으로 가져오세요.">
+<meta property="og:title" content="불백타임 루틴 공유">
+<meta property="og:description" content="눌러서 불백타임 앱으로 루틴을 가져오세요.">
+<meta property="og:image" content="https://mrcshlee-dot.github.io/icon.png">
+<meta name="theme-color" content="#0D0D0F">
+<link rel="icon" href="../icon.png">
+<style>
+  :root {
+    --bg: #0D0D0F;
+    --card: #18181C;
+    --line: #242428;
+    --text: #F2F2F4;
+    --muted: #9A9AA3;
+    --orange: #FF6B1A;
+    --on-orange: #1A0A00;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    line-height: 1.5;
+  }
+  main { max-width: 480px; margin: 0 auto; padding: 32px 16px 48px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 15px; font-weight: 600; }
+  .brand img { width: 36px; height: 36px; border-radius: 9px; }
+  h1 { font-size: 26px; line-height: 1.3; margin: 20px 0 6px; word-break: keep-all; }
+  .meta { color: var(--muted); font-size: 15px; margin: 0; }
+  .card { background: var(--card); border-radius: 16px; padding: 4px 16px; margin: 20px 0 24px; }
+  ol { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  li:first-child { border-top: 0; }
+  .num { width: 24px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; flex: none; }
+  .name { flex: 1; font-weight: 600; word-break: keep-all; }
+  .sub { color: var(--muted); font-size: 13px; flex: none; }
+  .btn {
+    display: block; width: 100%; padding: 16px; border-radius: 14px; border: 0;
+    font-size: 17px; font-weight: 700; text-align: center; text-decoration: none; margin-top: 10px;
+  }
+  .primary { background: var(--orange); color: var(--on-orange); }
+  .secondary { background: var(--card); color: var(--text); }
+  .note { color: var(--muted); font-size: 13px; margin-top: 20px; word-break: keep-all; }
+  .error { background: var(--card); border-radius: 16px; padding: 20px 16px; margin: 20px 0 24px; color: var(--muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><img src="../icon.png" alt="">불백타임</div>
+
+  <section id="routine" hidden>
+    <h1 id="title"></h1>
+    <p class="meta" id="meta"></p>
+    <div class="card"><ol id="items"></ol></div>
+  </section>
+
+  <div class="error" id="error" hidden>
+    루틴 정보를 읽지 못했어요. 링크가 잘렸을 수 있어요.<br>
+    보낸 사람에게 링크를 다시 받아 주세요.
+  </div>
+
+  <a class="btn primary" id="open" href="#">불백타임에서 열기</a>
+  <a class="btn secondary" id="install" href="#">플레이 스토어에서 설치</a>
+  <p class="note">
+    앱이 있으면 “불백타임에서 열기”를 누르면 루틴 가져오기 창이 떠요.
+    카카오톡에서 열었다면 이 버튼을 한 번 눌러 주세요.
+  </p>
+</main>
+<script>
+(function () {
+  var PACKAGE = 'com.bulbagtime.app';
+  var STORE = 'https://play.google.com/store/apps/details?id=' + PACKAGE;
+  var MODES = { INTERVAL: '인터벌', EMOM: 'EMOM', AMRAP: 'AMRAP', TABATA: '타바타' };
+  var CATEGORIES = { DYNAMIC: '전신', LOWER: '하체', UPPER: '상체', CORE: '코어' };
+
+  var hash = location.hash.slice(1);
+  var match = /^BT\d+\.[A-Za-z0-9_-]+$/.test(hash) ? hash : null;
+
+  // 앱이 있으면 앱을, 없으면 플레이 스토어를 연다. 카톡 안의 브라우저처럼 앱 링크를 바로 열지 않는 곳에서 쓴다
+  // 앱이 없을 때 fallback으로 간다. 버튼은 스토어로, 자동 시도는 이 페이지에 그대로 남는다
+  function intentUrl(fallback) {
+    return 'intent://' + location.host + location.pathname + location.hash +
+      '#Intent;scheme=https;package=' + PACKAGE +
+      ';S.browser_fallback_url=' + encodeURIComponent(fallback) + ';end';
+  }
+  var isAndroid = /Android/i.test(navigator.userAgent);
+  var openButton = document.getElementById('open');
+  openButton.href = isAndroid ? intentUrl(STORE) : STORE;
+  document.getElementById('install').href = STORE;
+  if (!match) openButton.hidden = true;
+
+  function decodeBase64Url(text) {
+    var base64 = text.replace(/-/g, '+').replace(/_/g, '/');
+    var binary = atob(base64 + '==='.slice((base64.length + 3) % 4));
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  // 앱(RoutineCode.kt)과 같은 형식: "BT1." + 압축(deflate, 헤더 없음)한 JSON을 URL용 Base64로
+  function decode(code) {
+    var bytes = decodeBase64Url(code.slice(code.indexOf('.') + 1));
+    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Response(stream).text().then(JSON.parse);
+  }
+
+  function show(routine) {
+    document.getElementById('title').textContent = '“' + routine.n + '” 루틴';
+    var count = routine.i.length;
+    var meta = (routine.m === 'INTERVAL' || routine.m === 'TABATA')
+      ? '동작 ' + count + '개 · ' + routine.R + '라운드'
+      : '동작 ' + count + '개 · ' + routine.t + '분';
+    document.getElementById('meta').textContent = (MODES[routine.m] || routine.m) + ' · ' + meta;
+    var list = document.getElementById('items');
+    routine.i.forEach(function (item, index) {
+      var exercise = routine.x[item[0]];
+      var li = document.createElement('li');
+      var num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = index + 1;
+      var name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = exercise.n;
+      var sub = document.createElement('span');
+      sub.className = 'sub';
+      var category = CATEGORIES[exercise.c] || '';
+      sub.textContent = routine.m === 'INTERVAL'
+        ? category + ' · ' + item[1] + '초' + (item[2] > 0 ? ' / 휴식 ' + item[2] + '초' : '')
+        : category;
+      li.append(num, name, sub);
+      list.append(li);
+    });
+    document.getElementById('routine').hidden = false;
+    document.title = '“' + routine.n + '” · 불백타임 루틴';
+  }
+
+  if (!match) {
+    document.getElementById('error').hidden = false;
+    return;
+  }
+  if (typeof DecompressionStream === 'undefined') {
+    // 오래된 브라우저는 미리보기만 못 하고 앱 열기는 된다
+    document.getElementById('title').textContent = '공유받은 루틴';
+    document.getElementById('routine').hidden = false;
+    document.querySelector('#routine .card').hidden = true;
+  } else {
+    decode(match).then(show).catch(function () {
+      document.getElementById('error').hidden = false;
+      openButton.hidden = true;
+    });
+  }
+
+  // 앱 링크가 동작하지 않는 곳(카톡 등)에서는 한 번 자동으로 앱을 열어 본다
+  if (isAndroid) {
+    setTimeout(function () { location.href = intentUrl(location.href); }, 300);
+  }
+})();
+</script>
+</body>
+</html>

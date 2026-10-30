@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.bulbagtime.app",
+      "sha256_cert_fingerprints": [
+        "6D:3C:C0:5F:FE:44:FF:EA:6A:5B:63:83:3A:F7:9D:E9:CE:3F:BC:6F:2A:7B:ED:81:8E:02:55:AE:56:A3:A0:02"
+      ]
+    }
+  }
+]
