@@ -48,6 +48,8 @@
   .primary { background: var(--orange); color: var(--on-orange); }
   .secondary { background: var(--card); color: var(--text); }
   .note { color: var(--muted); font-size: 13px; margin-top: 20px; word-break: keep-all; }
+  .routine-note { background: var(--card); border-radius: 16px; padding: 14px 16px; margin: 16px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); font-size: 15px; }
+  .routine-note a { color: var(--orange); }
   .error { background: var(--card); border-radius: 16px; padding: 20px 16px; margin: 20px 0 24px; color: var(--muted); }
   [hidden] { display: none !important; }
 </style>
@@ -59,6 +61,8 @@
   <section id="routine" hidden>
     <h1 id="title"></h1>
     <p class="meta" id="meta"></p>
+    <a class="btn secondary" id="video" href="#" target="_blank" rel="noopener noreferrer nofollow" hidden></a>
+    <div class="routine-note" id="routine-note" hidden></div>
     <div class="card"><ol id="items"></ol></div>
   </section>
 
@@ -78,6 +82,7 @@
     brand: '불백타임',
     error: '루틴 정보를 읽지 못했어요. 링크가 잘렸을 수 있어요.<br>보낸 사람에게 링크를 다시 받아 주세요.',
     open: '불백타임에서 열기',
+    video: '▶ 따라 할 영상 보기',
     install: '플레이 스토어에서 설치',
     note: '앱이 있으면 “불백타임에서 열기”를 누르면 루틴 가져오기 창이 떠요. 카카오톡에서 열었다면 이 버튼을 한 번 눌러 주세요.',
     title: function (name) { return '“' + name + '” 루틴'; },
@@ -88,11 +93,17 @@
     minutes: function (n) { return n + '분'; },
     work: function (w, r) { return w + '초' + (r > 0 ? ' / 휴식 ' + r + '초' : ''); },
     modes: { INTERVAL: '인터벌', EMOM: 'EMOM', AMRAP: 'AMRAP', TABATA: '타바타' },
-    categories: { DYNAMIC: '전신', LOWER: '하체', UPPER: '상체', CORE: '코어' }
+    categories: { DYNAMIC: '스윙·회전', LOWER: '스쿼트·힌지', UPPER: '밀기·당기기', CORE: '바닥 운동' },
+    testTitle: function (name) { return '“' + name + '” 테스트'; },
+    testDocTitle: function (name) { return '“' + name + '” · 불백타임 테스트'; },
+    testLabel: '테스트',
+    reps: function (n, eachSide) { return eachSide ? '좌우 각 ' + n + '회' : n + '회'; },
+    roundSub: function (cap, sets) { return '제한 ' + cap + (sets > 1 ? ' · ' + sets + '세트' : ''); }
   } : {
     brand: 'BulbagTime',
     error: 'Couldn\'t read this routine. The link may be cut off.<br>Ask the sender for the link again.',
     open: 'Open in BulbagTime',
+    video: '▶ Watch the follow-along video',
     install: 'Get it on Google Play',
     note: 'If you have the app, tap “Open in BulbagTime” to import the routine. In in-app browsers such as KakaoTalk, tap the button once.',
     title: function (name) { return '“' + name + '”'; },
@@ -103,7 +114,12 @@
     minutes: function (n) { return n + ' min'; },
     work: function (w, r) { return w + 's' + (r > 0 ? ' / rest ' + r + 's' : ''); },
     modes: { INTERVAL: 'Interval', EMOM: 'EMOM', AMRAP: 'AMRAP', TABATA: 'Tabata' },
-    categories: { DYNAMIC: 'Full', LOWER: 'Lower', UPPER: 'Upper', CORE: 'Core' }
+    categories: { DYNAMIC: 'Swings & spins', LOWER: 'Squats & hinges', UPPER: 'Push & pull', CORE: 'Floor work' },
+    testTitle: function (name) { return '“' + name + '” test'; },
+    testDocTitle: function (name) { return '“' + name + '” · BulbagTime test'; },
+    testLabel: 'Test',
+    reps: function (n, eachSide) { return eachSide ? n + ' each side' : n + ' reps'; },
+    roundSub: function (cap, sets) { return 'cap ' + cap + (sets > 1 ? ' · ' + sets + ' sets' : ''); }
   };
   document.documentElement.lang = KO ? 'ko' : 'en';
   document.title = KO ? '불백타임 루틴' : 'BulbagTime routine';
@@ -116,20 +132,23 @@
   var BUILT_IN = [
     ['스핀', 'DYNAMIC', 'Spin'], ['스내치', 'DYNAMIC', 'Snatch'], ['암 스로우', 'DYNAMIC', 'Arm Throw'],
     ['스윙', 'DYNAMIC', 'Swing'], ['사이드 스윙', 'DYNAMIC', 'Side Swing'], ['슬램', 'DYNAMIC', 'Slam'],
-    ['스윙 스핀', 'DYNAMIC', 'Swing Spin'], ['램 스윙', 'DYNAMIC', 'Ram Swing'],
+    ['스윙 + 스핀', 'DYNAMIC', 'Swing + Spin'] /* 기본 콤보 */, ['램 스윙', 'DYNAMIC', 'Ram Swing'],
     ['백 스쿼트', 'LOWER', 'Back Squat'], ['프론트/제르셔 스쿼트', 'LOWER', 'Front/Zercher Squat'],
     ['런지', 'LOWER', 'Lunge'], ['불가리안 스플릿 스쿼트', 'LOWER', 'Bulgarian Split Squat'],
-    ['숄더 레이즈 & 스쿼트', 'LOWER', 'Shoulder Raise & Squat'], ['클린 & 스쿼트', 'LOWER', 'Clean & Squat'],
-    ['스윙 스쿼트', 'LOWER', 'Swing Squat'],
+    ['숄더 레이즈 & 스쿼트', 'LOWER', 'Shoulder Raise & Squat'], ['클린 & 스쿼트', 'DYNAMIC', 'Clean & Squat'],
+    ['스윙 스쿼트', 'DYNAMIC', 'Swing Squat'],
     ['오버헤드 프레스', 'UPPER', 'Overhead Press'], ['벤트오버 로우', 'UPPER', 'Bent-over Row'],
     ['푸시업', 'UPPER', 'Push-up'], ['컬 & 익스텐션', 'UPPER', 'Biceps Curl & Triceps Extension'],
     ['벤트 프레스', 'UPPER', 'Bent Press'],
     ['러시안 트위스트', 'CORE', 'Russian Twist'], ['크런치 & 싯업', 'CORE', 'Crunch & Sit-up'],
-    ['굿모닝', 'CORE', 'Good Morning']
+    ['굿모닝', 'LOWER', 'Good Morning'], ['시멘트 믹서', 'DYNAMIC', 'Cement Mixer'],
+    ['스핀 + 스내치', 'DYNAMIC', 'Spin + Snatch'], ['스핀 + 암 스로우', 'DYNAMIC', 'Spin + Arm Throw'],
+    ['쓰러스터', 'LOWER', 'Thruster']
   ];
 
   var hash = location.hash.slice(1);
-  var match = /^BT\d+\.[A-Za-z0-9_-]+$/.test(hash) ? hash : null;
+  // 루틴 코드 BT숫자. 와 테스트 코드 BTT숫자. 를 둘 다 받는다
+  var match = /^BTT?\d+\.[A-Za-z0-9_-]+$/.test(hash) ? hash : null;
 
   // 앱이 있으면 앱을, 없으면 플레이 스토어를 연다. 카톡 안의 브라우저처럼 앱 링크를 바로 열지 않는 곳에서 쓴다
   // 앱이 없을 때 fallback으로 간다. 버튼은 스토어로, 자동 시도는 이 페이지에 그대로 남는다
@@ -154,25 +173,122 @@
 
   // 앱(RoutineCode.kt)과 같은 형식: "BT2." + 압축(deflate, 헤더 없음)한 JSON을 URL용 Base64로.
   // 형식 설명은 RoutineCode.kt 참고. 화면은 BT1 모양({n, m, R, t, x, i})으로 맞춰서 그린다
+  // 테스트 코드(TestSharing.kt의 TestCode): "BTT1." + 같은 방식으로 압축한 JSON.
+  // [이름, 라운드들([동작들([번호 또는 [번호들], 횟수, 좌우 각], ...), 세트, 제한초, 휴식초]), 직접 만든 동작들?, 동작 메모들?, 테스트 메모?]
+  function decodeTest(code) {
+    var version = code.slice(3, code.indexOf('.'));
+    if (version !== '1') return Promise.reject(new Error('unknown version'));
+    var bytes = decodeBase64Url(code.slice(code.indexOf('.') + 1));
+    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Response(stream).text().then(JSON.parse).then(function (json) {
+      var customs = json[2] || [];
+      function nameOf(number) {
+        if (number >= 0) return BUILT_IN[number] ? BUILT_IN[number][KO ? 0 : 2] : '?';
+        var custom = customs[-number - 1];
+        return custom ? custom[0] : '?';
+      }
+      var rounds = json[1].map(function (round) {
+        return {
+          moves: round[0].map(function (move) {
+            var numbers = Array.isArray(move[0]) ? move[0] : [move[0]];
+            return { n: numbers.map(nameOf).join(' & '), reps: move[1], side: move[2] === 1 };
+          }),
+          sets: round[1], cap: round[2], rest: round[3]
+        };
+      });
+      var note = typeof json[4] === 'string' ? json[4].slice(0, 300) : '';
+      return { test: true, n: json[0], rounds: rounds, o: note };
+    });
+  }
+
+  function formatSec(sec) {
+    var s = sec % 60;
+    return Math.floor(sec / 60) + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function showTest(test) {
+    document.getElementById('title').textContent = T.testTitle(test.n);
+    var total = test.rounds.reduce(function (sum, round, i) {
+      return sum + round.cap + (i < test.rounds.length - 1 ? round.rest : 0);
+    }, 0);
+    document.getElementById('meta').textContent = T.testLabel + ' · ' + T.rounds(test.rounds.length) + ' · ' + formatSec(total);
+    var list = document.getElementById('items');
+    test.rounds.forEach(function (round, index) {
+      var li = document.createElement('li');
+      var num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = (index + 1) + 'R';
+      var name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = round.moves.map(function (move) { return move.n + ' ' + T.reps(move.reps, move.side); }).join(', ');
+      var sub = document.createElement('span');
+      sub.className = 'sub';
+      sub.textContent = T.roundSub(formatSec(round.cap), round.sets);
+      li.append(num, name, sub);
+      list.append(li);
+    });
+    if (test.o) {
+      var noteEl = document.getElementById('routine-note');
+      renderNote(noteEl, test.o);
+      noteEl.hidden = false;
+    }
+    document.getElementById('routine').hidden = false;
+    document.title = T.testDocTitle(test.n);
+  }
+
   function decode(code) {
+    if (code.indexOf('BTT') === 0) return decodeTest(code);
     var version = code.slice(2, code.indexOf('.'));
     var bytes = decodeBase64Url(code.slice(code.indexOf('.') + 1));
     var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
     return new Response(stream).text().then(JSON.parse).then(function (json) {
       if (version === '1') return json;
-      if (version !== '2') throw new Error('unknown version');
+      if (version !== '2' && version !== '3') throw new Error('unknown version');
       var customs = json[8] || [];
       var exercises = [];
-      var items = json[7].map(function (item) {
+      // 12번 칸(BT3): 라운드별 구성에서 라운드마다 동작 수. 동작은 라운드 순서로 놓여 있다
+      var roundOf = [];
+      (json[12] || []).forEach(function (size, index) {
+        for (var i = 0; i < size; i++) roundOf.push(index + 1);
+      });
+      var items = json[7].map(function (item, itemIndex) {
         var number = Array.isArray(item) ? item[0] : item;
         var exercise = number >= 0
           ? { n: BUILT_IN[number][KO ? 0 : 2], c: BUILT_IN[number][1] }
           : { n: customs[-number - 1][0], c: CATEGORY_ORDER[customs[-number - 1][1]] };
         exercises.push(exercise);
-        return [exercises.length - 1, Array.isArray(item) ? item[1] : json[2], Array.isArray(item) ? item[2] : json[3]];
+        return [exercises.length - 1, Array.isArray(item) ? item[1] : json[2], Array.isArray(item) ? item[2] : json[3], roundOf[itemIndex]];
       });
-      return { n: json[0], m: MODE_ORDER[json[1]], R: json[4], t: json[6], x: exercises, i: items };
+      // 10번 칸: 루틴 메모(보낸 사람이 메모를 같이 보내기로 했을 때만)
+      var note = typeof json[10] === 'string' ? json[10].slice(0, 300) : '';
+      // 11번 칸: 따라 할 영상 링크(늘 같이 간다). https 주소일 때만 버튼을 띄운다
+      var video = typeof json[11] === 'string' ? json[11].trim().slice(0, 300) : '';
+      if (video && !/^https?:\/\//i.test(video)) video = 'https://' + video;
+      if (!/^https:\/\/[A-Za-z0-9\-._~:\/?#\[\]@!$&'()*+,;=%]+$/i.test(video)) video = '';
+      return { n: json[0], m: MODE_ORDER[json[1]], R: json[4], t: json[6], x: exercises, i: items, o: note, v: video };
     });
+  }
+
+  // 남이 쓴 글이라 HTML로 넣지 않고 글자 그대로 넣는다. https 주소만 링크로 만든다(앱과 같은 글자 규칙)
+  function renderNote(el, note) {
+    var link = /https:\/\/[A-Za-z0-9\-._~:\/?#\[\]@!$&'()*+,;=%]+/gi;
+    var trailing = '.,;:!?)]}\'';
+    var last = 0;
+    var m;
+    while ((m = link.exec(note)) !== null) {
+      var url = m[0];
+      while (url.length > 8 && trailing.indexOf(url.charAt(url.length - 1)) >= 0) url = url.slice(0, -1);
+      el.append(document.createTextNode(note.slice(last, m.index)));
+      var a = document.createElement('a');
+      a.href = url;
+      a.textContent = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer nofollow';
+      el.append(a);
+      last = m.index + url.length;
+      link.lastIndex = last;
+    }
+    el.append(document.createTextNode(note.slice(last)));
   }
 
   function show(routine) {
@@ -195,10 +311,22 @@
       var sub = document.createElement('span');
       sub.className = 'sub';
       var category = T.categories[exercise.c] || '';
-      sub.textContent = routine.m === 'INTERVAL' ? category + ' · ' + T.work(item[1], item[2]) : category;
+      sub.textContent = (item[3] ? item[3] + 'R · ' : '') +
+        (routine.m === 'INTERVAL' ? category + ' · ' + T.work(item[1], item[2]) : category);
       li.append(num, name, sub);
       list.append(li);
     });
+    if (routine.v) {
+      var videoEl = document.getElementById('video');
+      videoEl.href = routine.v;
+      videoEl.textContent = T.video;
+      videoEl.hidden = false;
+    }
+    if (routine.o) {
+      var noteEl = document.getElementById('routine-note');
+      renderNote(noteEl, routine.o);
+      noteEl.hidden = false;
+    }
     document.getElementById('routine').hidden = false;
     document.title = T.docTitle(routine.n);
   }
@@ -213,7 +341,7 @@
     document.getElementById('routine').hidden = false;
     document.querySelector('#routine .card').hidden = true;
   } else {
-    decode(match).then(show).catch(function () {
+    decode(match).then(function (result) { if (result.test) showTest(result); else show(result); }).catch(function () {
       document.getElementById('error').hidden = false;
       openButton.hidden = true;
     });
