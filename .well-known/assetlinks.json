@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.bulbagtime.app",
       "sha256_cert_fingerprints": [
-        "6D:3C:C0:5F:FE:44:FF:EA:6A:5B:63:83:3A:F7:9D:E9:CE:3F:BC:6F:2A:7B:ED:81:8E:02:55:AE:56:A3:A0:02"
+        "6D:3C:C0:5F:FE:44:FF:EA:6A:5B:63:83:3A:F7:9D:E9:CE:3F:BC:6F:2A:7B:ED:81:8E:02:55:AE:56:A3:A0:02",
+        "51:F8:D4:0B:A7:03:37:BF:B6:50:7F:A2:D7:77:A6:EE:86:0F:A3:05:FF:8C:43:F1:2C:5B:BD:84:11:99:DB:AF"
       ]
     }
   }
