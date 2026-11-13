@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>세트온 루틴 · SET ON routine</title>
+<!-- 미리보기(카톡 등)는 받는 사람 언어를 모르므로 두 언어를 같이 쓴다 -->
+<meta name="description" content="세트온에서 공유한 운동 루틴이에요. A workout routine shared from SET ON.">
+<meta property="og:title" content="세트온 루틴 공유 · SET ON routine">
+<meta property="og:description" content="눌러서 앱으로 루틴을 가져오세요 · Tap to import it into the app">
+<meta property="og:image" content="https://mrcshlee-dot.github.io/seton/icon.png">
+<meta name="theme-color" content="#0D0D0F">
+<link rel="icon" href="../icon.png">
+<style>
+  :root {
+    --bg: #0D0D0F;
+    --card: #18181C;
+    --line: #242428;
+    --text: #F2F2F4;
+    --muted: #9A9AA3;
+    --accent: #C6F432;
+    --on-accent: #172000;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    line-height: 1.5;
+  }
+  main { max-width: 480px; margin: 0 auto; padding: 32px 16px 48px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 15px; font-weight: 600; }
+  .brand img { width: 36px; height: 36px; border-radius: 9px; }
+  h1 { font-size: 26px; line-height: 1.3; margin: 20px 0 6px; word-break: keep-all; }
+  .meta { color: var(--muted); font-size: 15px; margin: 0; }
+  .card { background: var(--card); border-radius: 16px; padding: 4px 16px; margin: 20px 0 24px; }
+  ol { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  li:first-child { border-top: 0; }
+  .num { width: 24px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; flex: none; }
+  .name { flex: 1; font-weight: 600; word-break: keep-all; }
+  .sub { color: var(--muted); font-size: 13px; flex: none; text-align: right; }
+  .btn {
+    display: block; width: 100%; padding: 16px; border-radius: 14px; border: 0;
+    font-size: 17px; font-weight: 700; text-align: center; text-decoration: none; margin-top: 10px;
+  }
+  .primary { background: var(--accent); color: var(--on-accent); }
+  .secondary { background: var(--card); color: var(--text); }
+  .note { color: var(--muted); font-size: 13px; margin-top: 20px; word-break: keep-all; }
+  .routine-note { background: var(--card); border-radius: 16px; padding: 14px 16px; margin: 16px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); font-size: 15px; }
+  .routine-note a { color: var(--accent); }
+  .error { background: var(--card); border-radius: 16px; padding: 20px 16px; margin: 20px 0 24px; color: var(--muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><img src="../icon.png" alt=""><span data-t="brand">세트온</span></div>
+
+  <section id="routine" hidden>
+    <h1 id="title"></h1>
+    <p class="meta" id="meta"></p>
+    <a class="btn secondary" id="video" href="#" target="_blank" rel="noopener noreferrer nofollow" hidden></a>
+    <div class="routine-note" id="routine-note" hidden></div>
+    <div class="card"><ol id="items"></ol></div>
+  </section>
+
+  <div class="error" id="error" data-t="error" hidden></div>
+
+  <a class="btn primary" id="open" href="#" data-t="open"></a>
+  <a class="btn secondary" id="install" href="#" data-t="install"></a>
+  <p class="note" data-t="note"></p>
+</main>
+<script>
+(function () {
+  var PACKAGE = 'com.gifun.seton';
+  var STORE = 'https://play.google.com/store/apps/details?id=' + PACKAGE;
+  // 브라우저 언어가 한국어면 한국어, 아니면 영어 (앱과 같은 기준)
+  var KO = /^ko\b/i.test(navigator.language || '');
+  var T = KO ? {
+    brand: '세트온',
+    error: '루틴 정보를 읽지 못했어요. 링크가 잘렸을 수 있어요.<br>보낸 사람에게 링크를 다시 받아 주세요.',
+    open: '세트온에서 열기',
+    video: '▶ 따라 할 영상 보기',
+    install: '플레이 스토어에서 설치',
+    note: '앱이 있으면 “세트온에서 열기”를 누르면 루틴 가져오기 창이 떠요. 카카오톡에서 열었다면 이 버튼을 한 번 눌러 주세요.',
+    title: function (name) { return '“' + name + '” 루틴'; },
+    docTitle: function (name) { return '“' + name + '” · 세트온 루틴'; },
+    shared: '공유받은 루틴',
+    moves: function (n) { return '동작 ' + n + '개'; },
+    rounds: function (n) { return n + '라운드'; },
+    minutes: function (n) { return n + '분'; },
+    cap: function (n) { return '제한 ' + n + '분'; },
+    work: function (w, r) { return w + '초' + (r > 0 ? ' / 휴식 ' + r + '초' : ''); },
+    reps: function (n) { return n + '회'; },
+    eachSide: '좌우 각',
+    sides: { 1: '왼쪽', 2: '오른쪽' },
+    modes: { INTERVAL: '인터벌', EMOM: 'EMOM', AMRAP: 'AMRAP', TABATA: '타바타', FOR_TIME: 'For Time' },
+    categories: { UPPER: '상체', LOWER: '하체', CORE: '코어', FULL: '전신' },
+    testTitle: function (name) { return '“' + name + '” 테스트'; },
+    testDocTitle: function (name) { return '“' + name + '” · 세트온 테스트'; },
+    testLabel: '테스트',
+    testReps: function (n, eachSide) { return eachSide ? '좌우 각 ' + n + '회' : n + '회'; },
+    roundSub: function (cap, sets) { return '제한 ' + cap + (sets > 1 ? ' · ' + sets + '세트' : ''); }
+  } : {
+    brand: 'SET ON',
+    error: 'Couldn\'t read this routine. The link may be cut off.<br>Ask the sender for the link again.',
+    open: 'Open in SET ON',
+    video: '▶ Watch the follow-along video',
+    install: 'Get it on Google Play',
+    note: 'If you have the app, tap “Open in SET ON” to import the routine. In in-app browsers such as KakaoTalk, tap the button once.',
+    title: function (name) { return '“' + name + '”'; },
+    docTitle: function (name) { return '“' + name + '” · SET ON routine'; },
+    shared: 'Shared routine',
+    moves: function (n) { return n + (n === 1 ? ' move' : ' moves'); },
+    rounds: function (n) { return n + (n === 1 ? ' round' : ' rounds'); },
+    minutes: function (n) { return n + ' min'; },
+    cap: function (n) { return n + ' min cap'; },
+    work: function (w, r) { return w + 's' + (r > 0 ? ' / rest ' + r + 's' : ''); },
+    reps: function (n) { return '×' + n; },
+    eachSide: 'each side',
+    sides: { 1: 'Left', 2: 'Right' },
+    modes: { INTERVAL: 'Interval', EMOM: 'EMOM', AMRAP: 'AMRAP', TABATA: 'Tabata', FOR_TIME: 'For Time' },
+    categories: { UPPER: 'Upper body', LOWER: 'Lower body', CORE: 'Core', FULL: 'Full body' },
+    testTitle: function (name) { return '“' + name + '” test'; },
+    testDocTitle: function (name) { return '“' + name + '” · SET ON test'; },
+    testLabel: 'Test',
+    testReps: function (n, eachSide) { return eachSide ? n + ' each side' : n + ' reps'; },
+    roundSub: function (cap, sets) { return 'cap ' + cap + (sets > 1 ? ' · ' + sets + ' sets' : ''); }
+  };
+  document.documentElement.lang = KO ? 'ko' : 'en';
+  document.title = KO ? '세트온 루틴' : 'SET ON routine';
+  Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (el) {
+    el.innerHTML = T[el.getAttribute('data-t')];
+  });
+  // 앱의 RoutineCode와 같은 순서. 뒤에 추가만 한다. 기본 동작은 [한국어, 분류, 영어]
+  var MODE_ORDER = ['INTERVAL', 'EMOM', 'AMRAP', 'TABATA', 'FOR_TIME'];
+  var CATEGORY_ORDER = ['UPPER', 'LOWER', 'CORE', 'FULL'];
+  var BUILT_IN = [
+    ['푸시업', 'UPPER', 'Push-up'], ['풀업', 'UPPER', 'Pull-up'], ['친업', 'UPPER', 'Chin-up'],
+    ['딥스', 'UPPER', 'Dips'], ['파이크 푸시업', 'UPPER', 'Pike Push-up'],
+    ['에어 스쿼트', 'LOWER', 'Air Squat'], ['런지', 'LOWER', 'Lunge'], ['점프 스쿼트', 'LOWER', 'Jump Squat'],
+    ['박스 점프', 'LOWER', 'Box Jump'],
+    ['플랭크', 'CORE', 'Plank'], ['싯업', 'CORE', 'Sit-up'], ['토투바', 'CORE', 'Toes-to-Bar'],
+    ['할로우 홀드', 'CORE', 'Hollow Hold'],
+    ['버피', 'FULL', 'Burpee'], ['마운틴 클라이머', 'FULL', 'Mountain Climber'], ['점핑잭', 'FULL', 'Jumping Jack'],
+    ['케틀벨 스윙', 'FULL', 'Kettlebell Swing'], ['쓰러스터', 'FULL', 'Thruster'], ['월볼', 'FULL', 'Wall Ball'],
+    ['더블 언더', 'FULL', 'Double Under'], ['로잉', 'FULL', 'Row']
+  ];
+
+  var hash = location.hash.slice(1);
+  // 루틴 코드 SO숫자. 와 테스트 코드 SOT숫자. 를 둘 다 받는다
+  var match = /^SOT?\d+\.[A-Za-z0-9_-]+$/.test(hash) ? hash : null;
+
+  // 앱이 있으면 앱을, 없으면 플레이 스토어를 연다. 카톡 안의 브라우저처럼 앱 링크를 바로 열지 않는 곳에서 쓴다
+  // 앱이 없을 때 fallback으로 간다. 버튼은 스토어로, 자동 시도는 이 페이지에 그대로 남는다
+  function intentUrl(fallback) {
+    return 'intent://' + location.host + location.pathname + location.hash +
+      '#Intent;scheme=https;package=' + PACKAGE +
+      ';S.browser_fallback_url=' + encodeURIComponent(fallback) + ';end';
+  }
+  var isAndroid = /Android/i.test(navigator.userAgent);
+  var openButton = document.getElementById('open');
+  openButton.href = isAndroid ? intentUrl(STORE) : STORE;
+  document.getElementById('install').href = STORE;
+  if (!match) openButton.hidden = true;
+
+  function decodeBase64Url(text) {
+    var base64 = text.replace(/-/g, '+').replace(/_/g, '/');
+    var binary = atob(base64 + '==='.slice((base64.length + 3) % 4));
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function inflate(code) {
+    var bytes = decodeBase64Url(code.slice(code.indexOf('.') + 1));
+    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Response(stream).text().then(JSON.parse);
+  }
+
+  // 테스트 코드(TestSharing.kt의 TestCode): "SOT1." + 압축한 JSON.
+  // [이름, 라운드들([동작들([번호 또는 [번호들], 횟수, 좌우 각], ...), 세트, 제한초, 휴식초]), 직접 만든 동작들?, 동작 메모들?, 테스트 메모?]
+  function decodeTest(code) {
+    var version = code.slice(3, code.indexOf('.'));
+    if (version !== '1') return Promise.reject(new Error('unknown version'));
+    return inflate(code).then(function (json) {
+      var customs = json[2] || [];
+      function nameOf(number) {
+        if (number >= 0) return BUILT_IN[number] ? BUILT_IN[number][KO ? 0 : 2] : '?';
+        var custom = customs[-number - 1];
+        return custom ? custom[0] : '?';
+      }
+      var rounds = json[1].map(function (round) {
+        return {
+          moves: round[0].map(function (move) {
+            var numbers = Array.isArray(move[0]) ? move[0] : [move[0]];
+            return { n: numbers.map(nameOf).join(' & '), reps: move[1], side: move[2] === 1 };
+          }),
+          sets: round[1], cap: round[2], rest: round[3]
+        };
+      });
+      var note = typeof json[4] === 'string' ? json[4].slice(0, 300) : '';
+      return { test: true, n: json[0], rounds: rounds, o: note };
+    });
+  }
+
+  function formatSec(sec) {
+    var s = sec % 60;
+    return Math.floor(sec / 60) + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function showTest(test) {
+    document.getElementById('title').textContent = T.testTitle(test.n);
+    var total = test.rounds.reduce(function (sum, round, i) {
+      return sum + round.cap + (i < test.rounds.length - 1 ? round.rest : 0);
+    }, 0);
+    document.getElementById('meta').textContent = T.testLabel + ' · ' + T.rounds(test.rounds.length) + ' · ' + formatSec(total);
+    var list = document.getElementById('items');
+    test.rounds.forEach(function (round, index) {
+      var li = document.createElement('li');
+      var num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = (index + 1) + 'R';
+      var name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = round.moves.map(function (move) { return move.n + ' ' + T.testReps(move.reps, move.side); }).join(', ');
+      var sub = document.createElement('span');
+      sub.className = 'sub';
+      sub.textContent = T.roundSub(formatSec(round.cap), round.sets);
+      li.append(num, name, sub);
+      list.append(li);
+    });
+    if (test.o) {
+      var noteEl = document.getElementById('routine-note');
+      renderNote(noteEl, test.o);
+      noteEl.hidden = false;
+    }
+    document.getElementById('routine').hidden = false;
+    document.title = T.testDocTitle(test.n);
+  }
+
+  // 앱(RoutineCode.kt)과 같은 형식: "SO1." + 압축(deflate, 헤더 없음)한 JSON 배열을 URL용 Base64로.
+  // [이름, 모드, 기본 운동초, 기본 휴식초, 라운드, 라운드 사이 휴식초, 총 분, 동작들, 직접 만든 동작들?, 메모들?, 루틴 메모?, 영상 링크?, 라운드별 동작 수?, 라운드별 횟수?]
+  // 동작: 번호 하나, 또는 [번호, 운동초, 휴식초, 방향(0 없음, 1 왼쪽, 2 오른쪽), 횟수(0 없음), 좌우 각(1)]
+  function decode(code) {
+    if (code.indexOf('SOT') === 0) return decodeTest(code);
+    var version = code.slice(2, code.indexOf('.'));
+    if (version !== '1') return Promise.reject(new Error('unknown version'));
+    return inflate(code).then(function (json) {
+      var customs = json[8] || [];
+      // 12번 칸: 라운드별 구성에서 라운드마다 동작 수. 동작은 라운드 순서로 놓여 있다
+      var roundOf = [];
+      (json[12] || []).forEach(function (size, index) {
+        for (var i = 0; i < size; i++) roundOf.push(index + 1);
+      });
+      var items = json[7].map(function (item, itemIndex) {
+        var number = Array.isArray(item) ? item[0] : item;
+        var exercise = number >= 0
+          ? { n: BUILT_IN[number][KO ? 0 : 2], c: BUILT_IN[number][1] }
+          : { n: customs[-number - 1][0], c: CATEGORY_ORDER[customs[-number - 1][1]] };
+        var a = Array.isArray(item) ? item : null;
+        return {
+          n: exercise.n,
+          c: exercise.c,
+          work: a ? a[1] : json[2],
+          rest: a ? a[2] : json[3],
+          side: a && a[3] ? a[3] : 0,
+          reps: a && a[4] ? a[4] : 0,
+          eachSide: !!(a && a[5] === 1),
+          round: roundOf[itemIndex]
+        };
+      });
+      // 10번 칸: 루틴 메모(보낸 사람이 메모를 같이 보내기로 했을 때만)
+      var note = typeof json[10] === 'string' ? json[10].slice(0, 300) : '';
+      // 11번 칸: 따라 할 영상 링크(늘 같이 간다). https 주소일 때만 버튼을 띄운다
+      var video = typeof json[11] === 'string' ? json[11].trim().slice(0, 300) : '';
+      if (video && !/^https?:\/\//i.test(video)) video = 'https://' + video;
+      if (!/^https:\/\/[A-Za-z0-9\-._~:\/?#\[\]@!$&'()*+,;=%]+$/i.test(video)) video = '';
+      // 13번 칸: For Time 라운드별 횟수(예: [21, 15, 9])
+      var scheme = Array.isArray(json[13]) ? json[13].filter(function (n) { return typeof n === 'number'; }) : [];
+      return { n: json[0], m: MODE_ORDER[json[1]], R: json[4], t: json[6], items: items, o: note, v: video, scheme: scheme };
+    });
+  }
+
+  // 남이 쓴 글이라 HTML로 넣지 않고 글자 그대로 넣는다. https 주소만 링크로 만든다(앱과 같은 글자 규칙)
+  function renderNote(el, note) {
+    var link = /https:\/\/[A-Za-z0-9\-._~:\/?#\[\]@!$&'()*+,;=%]+/gi;
+    var trailing = '.,;:!?)]}\'';
+    var last = 0;
+    var m;
+    while ((m = link.exec(note)) !== null) {
+      var url = m[0];
+      while (url.length > 8 && trailing.indexOf(url.charAt(url.length - 1)) >= 0) url = url.slice(0, -1);
+      el.append(document.createTextNode(note.slice(last, m.index)));
+      var a = document.createElement('a');
+      a.href = url;
+      a.textContent = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer nofollow';
+      el.append(a);
+      last = m.index + url.length;
+      link.lastIndex = last;
+    }
+    el.append(document.createTextNode(note.slice(last)));
+  }
+
+  function show(routine) {
+    document.getElementById('title').textContent = T.title(routine.n);
+    var count = routine.items.length;
+    var length;
+    if (routine.m === 'INTERVAL' || routine.m === 'TABATA') {
+      length = T.rounds(routine.R);
+    } else if (routine.m === 'FOR_TIME') {
+      length = (routine.scheme.length ? routine.scheme.join('-') : T.rounds(routine.R)) + ' · ' + T.cap(routine.t);
+    } else {
+      length = T.minutes(routine.t);
+    }
+    document.getElementById('meta').textContent = (T.modes[routine.m] || routine.m) + ' · ' + T.moves(count) + ' · ' + length;
+    var usesReps = routine.m === 'EMOM' || routine.m === 'AMRAP' || routine.m === 'FOR_TIME';
+    var usesEachSide = routine.m === 'AMRAP' || routine.m === 'FOR_TIME';
+    var list = document.getElementById('items');
+    routine.items.forEach(function (item, index) {
+      var li = document.createElement('li');
+      var num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = index + 1;
+      var name = document.createElement('span');
+      name.className = 'name';
+      // 방향은 좌우 각을 쓰지 않는 모드에서만 이름 옆에 붙인다(앱과 같다)
+      name.textContent = item.n + (!usesEachSide && T.sides[item.side] ? ' · ' + T.sides[item.side] : '');
+      var sub = document.createElement('span');
+      sub.className = 'sub';
+      var parts = [];
+      if (item.round) parts.push(item.round + 'R');
+      parts.push(T.categories[item.c] || '');
+      if (routine.m === 'INTERVAL') {
+        parts.push(T.work(item.work, item.rest));
+      } else if (usesReps) {
+        var amount = routine.m === 'FOR_TIME' && routine.scheme.length
+          ? routine.scheme.join('-')
+          : (item.reps ? T.reps(item.reps) : '');
+        var each = usesEachSide && item.eachSide ? T.eachSide : '';
+        var text = [each, amount].filter(Boolean).join(' ');
+        if (text) parts.push(text);
+      }
+      sub.textContent = parts.filter(Boolean).join(' · ');
+      li.append(num, name, sub);
+      list.append(li);
+    });
+    if (routine.v) {
+      var videoEl = document.getElementById('video');
+      videoEl.href = routine.v;
+      videoEl.textContent = T.video;
+      videoEl.hidden = false;
+    }
+    if (routine.o) {
+      var noteEl = document.getElementById('routine-note');
+      renderNote(noteEl, routine.o);
+      noteEl.hidden = false;
+    }
+    document.getElementById('routine').hidden = false;
+    document.title = T.docTitle(routine.n);
+  }
+
+  if (!match) {
+    document.getElementById('error').hidden = false;
+    return;
+  }
+  if (typeof DecompressionStream === 'undefined') {
+    // 오래된 브라우저는 미리보기만 못 하고 앱 열기는 된다
+    document.getElementById('title').textContent = T.shared;
+    document.getElementById('routine').hidden = false;
+    document.querySelector('#routine .card').hidden = true;
+  } else {
+    decode(match).then(function (result) { if (result.test) showTest(result); else show(result); }).catch(function () {
+      document.getElementById('error').hidden = false;
+      openButton.hidden = true;
+    });
+  }
+
+  // 앱 링크가 동작하지 않는 곳(카톡 등)에서는 한 번 자동으로 앱을 열어 본다
+  if (isAndroid) {
+    setTimeout(function () { location.href = intentUrl(location.href); }, 300);
+  }
+})();
+</script>
+</body>
+</html>
