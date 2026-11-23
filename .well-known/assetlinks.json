@@ -1,8 +1,6 @@
 [
   {
-    "relation": [
-      "delegate_permission/common.handle_all_urls"
-    ],
+    "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
       "package_name": "com.bulbagtime.app",
@@ -13,14 +11,14 @@
     }
   },
   {
-    "relation": [
-      "delegate_permission/common.handle_all_urls"
-    ],
+    "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
       "package_name": "com.gifun.seton",
       "sha256_cert_fingerprints": [
-        "6D:3C:C0:5F:FE:44:FF:EA:6A:5B:63:83:3A:F7:9D:E9:CE:3F:BC:6F:2A:7B:ED:81:8E:02:55:AE:56:A3:A0:02"
+        "6D:3C:C0:5F:FE:44:FF:EA:6A:5B:63:83:3A:F7:9D:E9:CE:3F:BC:6F:2A:7B:ED:81:8E:02:55:AE:56:A3:A0:02",
+        "E9:3F:FA:CB:D4:7A:A5:CD:71:98:59:13:6C:95:A1:6C:07:D2:EC:66:CE:AD:FF:2F:83:08:E3:43:5A:0B:41:DE",
+        "63:04:31:DD:24:28:D8:AD:10:7F:B5:64:CB:E7:24:E2:BB:89:74:04:55:70:EB:E8:6A:02:AB:10:7A:28:2B:7E"
       ]
     }
   }
